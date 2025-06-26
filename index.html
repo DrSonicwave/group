@@ -122,22 +122,43 @@
         const closeModalBtn = document.getElementById('closeModal');
         
         // --- Firebase Setup ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'team-generator-kr';
+        // <<!! 중요 !!>> GitHub Pages 등 외부 환경에 배포하려면 아래를 수정하세요.
+        // 이 곳에 본인의 Firebase 프로젝트 설정 객체를 붙여넣으세요.
+        // Firebase 콘솔에서 '프로젝트 설정' -> '일반' 탭 -> '내 앱' 섹션에서 웹 앱의 설정 정보를 찾을 수 있습니다.
+        const userFirebaseConfig = {
+          // apiKey: "AIza....",
+          // authDomain: "your-project-id.firebaseapp.com",
+          // projectId: "your-project-id",
+          // storageBucket: "your-project-id.appspot.com",
+          // messagingSenderId: "...",
+          // appId: "1:..."
+        };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'team-generator-kr-public';
         let db, auth, userId;
         let isAuthReady = false;
-        let teamHistory = []; // Local cache for history
+        let teamHistory = [];
 
-        // Use injected firebase config if available
         try {
-            const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+            // Canvas 환경에서는 __firebase_config를 사용하고, 그렇지 않으면 userFirebaseConfig를 사용합니다.
+            const firebaseConfig = typeof __firebase_config !== 'undefined' 
+                ? JSON.parse(__firebase_config) 
+                : userFirebaseConfig;
+
+            // 외부 배포 시 설정이 비어있는지 확인합니다.
+            if (!firebaseConfig || !firebaseConfig.apiKey) {
+                 throw new Error("Firebase 설정이 필요합니다. 스크립트 코드 내 'userFirebaseConfig' 변수를 자신의 Firebase 프로젝트 설정으로 채워주세요.");
+            }
+
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
-            setLogLevel('debug'); // For detailed logs
+            setLogLevel('debug');
         } catch(e) {
             console.error("Firebase 초기화 실패:", e);
-            showMessage("서비스를 초기화할 수 없습니다. 잠시 후 다시 시도해주세요.");
+            showMessage(e.message || "서비스를 초기화할 수 없습니다. 잠시 후 다시 시도해주세요.");
         }
+
 
         // --- Authentication ---
         onAuthStateChanged(auth, async (user) => {
